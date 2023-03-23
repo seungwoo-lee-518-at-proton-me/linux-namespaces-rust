@@ -1,0 +1,2 @@
+[workspace]
+members = ["demo_uts_namespaces"]
