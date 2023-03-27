@@ -33,9 +33,9 @@ struct Args {
 const STACK_SIZE: usize = 1024 * 1024;
 
 /// Child function
-fn child_func () -> isize {
-    let filename = CString::new("bash").unwrap();
-    let args = vec![CString::new("bash").unwrap()];
+fn child_func (command: &str) -> isize {
+    let filename = CString::new(command).unwrap();
+    let args = vec![CString::new(command).unwrap()];
     if let Err(err) = nix::unistd::execvp(filename.as_c_str(), &args) {
         println!("execvp: {}", err);
         return 1
@@ -69,7 +69,8 @@ fn main() -> std::process::ExitCode {
     let clone_flags = prepare_clone_flags(&_args);
     let signal = Some(nix::sys::signal::SIGCHLD as i32);
     let mut child_stack = vec![0; STACK_SIZE];
-    let child_pid = match nix::sched::clone(Box::new(child_func), child_stack.as_mut_slice(), clone_flags, signal) {
+    let child_handler = Box::new(|| child_func(&_args.command));
+    let child_pid = match nix::sched::clone(child_handler, child_stack.as_mut_slice(), clone_flags, signal) {
         Ok(pid) => {
             println!("PID = {}", pid);
             pid
