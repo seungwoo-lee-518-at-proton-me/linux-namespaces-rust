@@ -27,16 +27,23 @@ struct Args {
     #[arg(long, default_value_t = false)]
     verbose: bool,
     /// CMD
-    command: String
+    command: String,
+    #[clap(required = false)]
+    args: Option<Vec<String>>
 }
 
 const STACK_SIZE: usize = 1024 * 1024;
 
 /// Child function
-fn child_func (command: &str) -> isize {
-    let filename = CString::new(command).unwrap();
-    let args = vec![CString::new(command).unwrap()];
-    if let Err(err) = nix::unistd::execvp(filename.as_c_str(), &args) {
+fn child_func (command: &str, args: &Option<Vec<String>>) -> isize {
+    let mut command_vec = vec![];
+    command_vec.push(CString::new(command).unwrap());
+    if let Some(arguments) = args {
+        for arg in arguments {
+            command_vec.push(CString::new(arg.as_str()).unwrap())
+        }
+    }
+    if let Err(err) = nix::unistd::execvp(command_vec[0].as_ref(), &command_vec) {
         println!("execvp: {}", err);
         return 1
     }
@@ -69,7 +76,7 @@ fn main() -> std::process::ExitCode {
     let clone_flags = prepare_clone_flags(&_args);
     let signal = Some(nix::sys::signal::SIGCHLD as i32);
     let mut child_stack = vec![0; STACK_SIZE];
-    let child_handler = Box::new(|| child_func(&_args.command));
+    let child_handler = Box::new(|| child_func(&_args.command, &_args.args));
     let child_pid = match nix::sched::clone(child_handler, child_stack.as_mut_slice(), clone_flags, signal) {
         Ok(pid) => {
             println!("PID = {}", pid);
