@@ -1,7 +1,7 @@
-use std::{vec, ffi::CString, io::Write};
+use std::{vec, ffi::CString, io::Write, fmt::Debug};
 
 use clap::Parser;
-use nix::{sys::{signal::{SigAction, SigHandler, SaFlags, sigaction, self}, signalfd::SigSet}, libc::{STDIN_FILENO, pause}, unistd::{fork, ForkResult}};
+use nix::{sys::{signal::{SigAction, SigHandler, SaFlags, sigaction}, signalfd::SigSet}, libc::STDIN_FILENO, unistd::{fork, ForkResult, pause}};
 
 #[macro_use]
 extern crate log;
@@ -21,13 +21,21 @@ extern fn signal_handler(_sig: nix::libc::c_int) {
                     break;
                 } else {
                     error!("got error while wait child: {}", err.to_string());
-                    std::process::exit(1)
                 }
             },
-            Ok(status) => {
-                let status_pid = status.pid().unwrap();
-                debug!("[init]: SIGCHLD handler: PID {} terminated", status_pid)
-            },
+            Ok(wait_status) => {
+                match wait_status {
+                    nix::sys::wait::WaitStatus::Exited(pid, _exit_code) => {
+                        debug!("SIGCHLD handler: PID {} terminated", pid)
+                    },
+                    nix::sys::wait::WaitStatus::Stopped(pid, _exit_code) => {
+                        debug!("SIGCHLD handler: PID {} stopped", pid)
+                    },
+                    _ => {
+                        // Ignore Other Events...
+                    }
+                }
+            }
         }
     }
 }
@@ -53,11 +61,11 @@ struct Args {
 }
 
 fn main() -> std::process::ExitCode {
-    let args = Args::parse();
     // Before Initialize Logger, Set LogLevel to DEBUG
     // When Verbose flag is True
+    let args = Args::parse();
     if args.verbose {
-        std::env::set_var("RUST_LOG", "DEBUG")
+        std::env::set_var("RUST_LOG", "DEBUG");
     }
     // then Initialize Logger
     env_logger::init();
@@ -69,15 +77,15 @@ fn main() -> std::process::ExitCode {
         sa_flags,
         SigSet::empty(),
     );
-    unsafe {
-        if let Err(err) = sigaction(nix::sys::signal::SIGCHLD, &sa) {
-            error!("sigaction: {}", err);
-            return std::process::ExitCode::from(2)
-        }
-        if let Err(err) = signal::signal(signal::Signal::SIGTTOU, SigHandler::SigIgn) {
-            error!("signal: {}", err);
-            return std::process::ExitCode::from(3)
-        }
+    // Create empty handler for ignore SIGTTOU
+    let sa_ignore = SigAction::new(SigHandler::SigIgn, SaFlags::empty(), SigSet::empty());
+    if let Err(err) = unsafe { sigaction(nix::sys::signal::SIGCHLD, &sa) } {
+        error!("sigaction: {}", err);
+        return std::process::ExitCode::from(2)
+    }
+    if let Err(err) = unsafe { sigaction(nix::sys::signal::SIGTTOU, &sa_ignore) } {
+        error!("signal: {}", err);
+        return std::process::ExitCode::from(3)
     }
     if let Err(err) = nix::unistd::setpgid(
         nix::unistd::Pid::from_raw(0),
@@ -114,16 +122,14 @@ fn main() -> std::process::ExitCode {
         }
         match unsafe { fork() } {
             Ok(ForkResult::Parent { child }) => {
-                debug!("created child: {}", child);
-                unsafe {
-                    pause();
-                    if let Err(err) = nix::unistd::tcsetpgrp(
-                        STDIN_FILENO,
-                        nix::unistd::getpgrp(),
-                    ) {
-                        error!("tcsetpgrp-parent: {}", err);
-                        std::process::exit(6);
-                    }
+                info!("created child: {}", child.as_raw());
+                pause();
+                if let Err(err) = nix::unistd::tcsetpgrp(
+                    STDIN_FILENO,
+                    nix::unistd::getpgrp(),
+                ) {
+                    error!("tcsetpgrp-parent: {}", err);
+                    std::process::exit(6);
                 }
             },
             Ok(ForkResult::Child) => {
