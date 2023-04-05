@@ -1,2 +1,2 @@
 [workspace]
-members = ["demo_uts_namespaces", "ns_exec", "unshare", "pidns_init_sleep", "ns_child_exec", "simple_init", "orphan", "ns_run"]
+members = ["demo_uts_namespaces", "ns_exec", "unshare", "pidns_init_sleep", "ns_child_exec", "simple_init", "orphan", "ns_run", "demo_userns"]
