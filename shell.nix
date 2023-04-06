@@ -9,5 +9,6 @@ let
 				unstable.rust-analyzer
 				unstable.pkg-config
 				unstable.openssl
+				unstable.protobuf3_20
 		  ];
 	  }
