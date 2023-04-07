@@ -1,8 +1,8 @@
-package userns;
-
 syntax="proto3";
 
-import "google.protobuf.empty";
+package userns;
+
+import "google/protobuf/empty.proto";
 
 message MapRequest {
 	enum Type {
