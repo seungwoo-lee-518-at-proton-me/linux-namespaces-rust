@@ -1,0 +1,16 @@
+[package]
+name = "userns_child_exec"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.2.1", features = ["derive"] }
+nix = { version = "0.26.2", features = ["sched"] }
+prost = "0.11"
+tokio = { version = "1", features = ["full"] }
+tonic = "0.9.1"
+
+[build-dependencies]
+tonic-build = "0.9.1"

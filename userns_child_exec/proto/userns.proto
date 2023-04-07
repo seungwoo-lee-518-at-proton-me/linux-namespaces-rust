@@ -1,0 +1,29 @@
+package userns;
+
+syntax="proto3";
+
+import "google.protobuf.empty";
+
+message MapRequest {
+	enum Type {
+		GID = 0;
+		UID = 1;
+	}
+	Type type = 1;
+	uint32 IDInsideNS = 2;
+	uint32 IDOutsideNS = 3;
+	uint32 Length = 4;
+}
+
+service UsernsMapper {
+	// Ping for Check Handler is Come up
+	rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+	// Map for Handling UID/GID Mapping
+	//
+	// If Type is Default (or GID), It'll write mapping to "/proc/{PID}/gid_map"
+	// Other (or UID) will be mapping to "/proc/{PID}/uid_map"
+	//
+	// It'll handle setgroups (or "/proc/{PID}/setgroups") before handle mapping
+	// Ref: https://lwn.net/Articles/539940/ 
+	rpc Map(MapRequest) returns (google.protobuf.Empty) {}
+}
