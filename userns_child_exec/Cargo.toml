@@ -10,7 +10,12 @@ clap = { version = "4.2.1", features = ["derive"] }
 nix = { version = "0.26.2", features = ["sched"] }
 prost = "0.11"
 tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1.12", features = ["net"] }
+tower = { version = "0.4" }
 tonic = "0.9.1"
+log = "0.4.0"
+env_logger = "0.9.0"
+scopeguard = "1.1.0"
 
 [build-dependencies]
 tonic-build = "0.9.1"
