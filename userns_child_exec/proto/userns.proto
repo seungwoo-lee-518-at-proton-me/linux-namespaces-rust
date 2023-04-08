@@ -13,6 +13,7 @@ message MapRequest {
 	uint32 IDInsideNS = 2;
 	uint32 IDOutsideNS = 3;
 	uint32 Length = 4;
+	uint32 PID = 5;
 }
 
 service UsernsMapper {
